@@ -165,24 +165,44 @@ class SimulationModel:
         entity = Entity(id, self.env)
         for step in self.steps:
             yield self.env.process(step.run(self.env, entity))
-
+# Made changes to the def run(self) to eliminate the generator issue. 
     def run(self):
-        """
-        Run the simulation until completion.
-        
-        This method creates entities according to the configured arrival rate,
-        runs the simulation for the specified duration, and returns the metrics.
-        
-        Returns:
-            A dictionary containing summary statistics for the simulation run.
-        """
+        """Run the simulation until completion and return metrics."""
         interarrival = self.config.get("interarrival", 2)
         num_entities = self.config.get("num_entities", 100)
         run_time = self.config.get("run_time", 120)
 
+        # Start the entity generation process
+        self.env.process(self.generate_entities(interarrival, num_entities))
+        
+        # Run the simulation
+        self.env.run(until=run_time)
+        
+        # Return the collected metrics
+        return self.metrics.summarise()
+
+    def generate_entities(self, interarrival, num_entities):
+        """Generator function for creating entities with arrival timing."""
         for i in range(num_entities):
             self.env.process(self.entity_process(i))
             yield self.env.timeout(random.expovariate(1 / interarrival))
+    # def run(self):
+    #     """
+    #     Run the simulation until completion.
+        
+    #     This method creates entities according to the configured arrival rate,
+    #     runs the simulation for the specified duration, and returns the metrics.
+        
+    #     Returns:
+    #         A dictionary containing summary statistics for the simulation run.
+    #     """
+    #     interarrival = self.config.get("interarrival", 2)
+    #     num_entities = self.config.get("num_entities", 100)
+    #     run_time = self.config.get("run_time", 120)
 
-        self.env.run(until=run_time)
-        return self.metrics.summarise()
+    #     for i in range(num_entities):
+    #         self.env.process(self.entity_process(i))
+    #         yield self.env.timeout(random.expovariate(1 / interarrival))
+
+    #     self.env.run(until=run_time)
+    #     return self.metrics.summarise()
